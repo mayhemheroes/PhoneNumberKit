@@ -9,7 +9,8 @@ let package = Package(
     products: [
         .library(name: "PhoneNumberKit", targets: ["PhoneNumberKit"]),
         .library(name: "PhoneNumberKit-Static", type: .static, targets: ["PhoneNumberKit"]),
-        .library(name: "PhoneNumberKit-Dynamic", type: .dynamic, targets: ["PhoneNumberKit"])
+        .library(name: "PhoneNumberKit-Dynamic", type: .dynamic, targets: ["PhoneNumberKit"]),
+        .executable(name: "PhoneNumberKitFuzzer", targets: ["PhoneNumberKitFuzzer"])
     ],
     targets: [
         .target(name: "PhoneNumberKit",
@@ -20,6 +21,23 @@ let package = Package(
                           "Info.plist"],
                 resources: [
                     .process("Resources/PhoneNumberMetadata.json")
+                ],
+                swiftSettings: [
+                    .unsafeFlags(["-sanitize=fuzzer,address"]),
+                ],
+                linkerSettings: [
+                    .unsafeFlags([
+                        "-sanitize=fuzzer,address"
+                    ])
+                ]),
+
+        .executableTarget(name: "PhoneNumberKitFuzzer",
+                dependencies: ["PhoneNumberKit"],
+                path: "mayhem",
+                sources: ["main.swift", "FuzzedDataProvider.swift"],
+                swiftSettings: [
+                    .unsafeFlags(["-sanitize=fuzzer,address"]),
+                    .unsafeFlags(["-parse-as-library"])
                 ]),
         .testTarget(name: "PhoneNumberKitTests",
                     dependencies: ["PhoneNumberKit"],
