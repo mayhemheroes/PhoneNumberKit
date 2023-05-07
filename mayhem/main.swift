@@ -9,14 +9,15 @@ import MSVCRT
 import PhoneNumberKit
 import enum PhoneNumberKit.PhoneNumberError
 import Foundation
+import SwiftGlibc
 
 let phoneNumberKit = PhoneNumberKit()
 
 let supported_formats = [PhoneNumberFormat.international, PhoneNumberFormat.national, PhoneNumberFormat.e164]
 
+
 @_cdecl("LLVMFuzzerTestOneInput")
 public func test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
-
     let fdp = FuzzedDataProvider(start, count)
     do {
         let phoneNumber = try phoneNumberKit.parse(
@@ -28,7 +29,7 @@ public func test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         let format = fdp.PickValueInList(from: supported_formats)
         let choice = fdp.ConsumeIntegralInRange(from: 0, to: 3)
 
-        switch(choice) {
+        switch (choice) {
         case 0:
             phoneNumberKit.format(phoneNumber, toType: format, withPrefix: fdp.ConsumeBoolean())
         case 1:
@@ -40,6 +41,7 @@ public func test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
         default:
             break
         }
+
     } catch let _ as PhoneNumberError {
         return -1;
     } catch {
