@@ -12,19 +12,35 @@ import Foundation
 
 let phoneNumberKit = PhoneNumberKit()
 
+let supported_formats = [PhoneNumberFormat.international, PhoneNumberFormat.national, PhoneNumberFormat.e164]
+
 @_cdecl("LLVMFuzzerTestOneInput")
 public func test(_ start: UnsafeRawPointer, _ count: Int) -> CInt {
-    if (count <= 20) {
-        return -1;
-    }
-    let fdp = FuzzedDataProvider(start, count)
-    let num: Int8 = fdp.ConsumeIntegral()
-    let str = fdp.ConsumeRandomLengthString()
-    do {
-        let phoneNumber = try phoneNumberKit.parse(str)
 
-        phoneNumberKit.format(phoneNumber, toType: .international)
-    } catch let error as PhoneNumberError {
+    let fdp = FuzzedDataProvider(start, count)
+    do {
+        let phoneNumber = try phoneNumberKit.parse(
+                fdp.ConsumeRandomLengthString(),
+                withRegion: fdp.ConsumeRandomLengthString(),
+                ignoreType: fdp.ConsumeBoolean()
+        )
+
+        let format = fdp.PickValueInList(from: supported_formats)
+        let choice = fdp.ConsumeIntegralInRange(from: 0, to: 3)
+
+        switch(choice) {
+        case 0:
+            phoneNumberKit.format(phoneNumber, toType: format, withPrefix: fdp.ConsumeBoolean())
+        case 1:
+            phoneNumberKit.isValidPhoneNumber(fdp.ConsumeRandomLengthString())
+        case 2:
+            phoneNumberKit.countries(withCode: fdp.ConsumeIntegral())
+        case 3:
+            phoneNumberKit.countryCode(for: fdp.ConsumeRandomLengthString())
+        default:
+            break
+        }
+    } catch let _ as PhoneNumberError {
         return -1;
     } catch {
         exit(EXIT_FAILURE);

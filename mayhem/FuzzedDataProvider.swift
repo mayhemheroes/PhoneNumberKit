@@ -8,13 +8,29 @@ class FuzzedDataProvider {
         data_src = Data(bytes: data, count: count)
     }
 
-    func RemainingBytes() -> Int {
+    private func RemainingBytes() -> Int {
         return data_src.count
     }
 
     private func CastToUInt64<T: FixedWidthInteger>(_ value: T) -> UInt64 {
         return UInt64(value.magnitude)
     }
+
+    private func GetRangeForBitWidth<T: FixedWidthInteger>(of ty: T) -> (min: UInt64, max: UInt64)? {
+        switch (ty) {
+        case 8:
+            return (UInt64(UInt8.min), UInt64(UInt8.max))
+        case 16:
+            return (UInt64(UInt16.min), UInt64(UInt16.max))
+        case 32:
+            return (UInt64(UInt32.min), UInt64(UInt32.max))
+        case 64:
+            return (UInt64(UInt64.min), UInt64(UInt64.max))
+        default:
+            return nil
+        }
+    }
+
     /**
      Consumes a number in the given range from the data source
      - Parameters:
@@ -23,9 +39,8 @@ class FuzzedDataProvider {
      - Returns: A number in the range [min, max] or |min| if remaining bytes are empty
      */
     func ConsumeIntegralInRange<T: FixedWidthInteger>(from min: T, to max: T) -> T {
-        // TODO: This is wonky
         if (min > max) {
-            return min;
+            abort()
         }
         let range = CastToUInt64(max) - CastToUInt64(min)
         var result: UInt64 = 0
@@ -43,8 +58,14 @@ class FuzzedDataProvider {
         return min + T(result)
     }
 
-    func ConsumeIntegral<T: FixedWidthInteger>() -> T {
+    func ConsumeIntegral<T: FixedWidthInteger & UnsignedInteger>() -> T {
+        // Get the unsigned version of the type
         return ConsumeIntegralInRange(from: T.min, to: T.max)
+    }
+
+    func ConsumeBoolean() -> Bool {
+        let v: UInt8 = ConsumeIntegral()
+        return Bool(truncating: (v & 1) as NSNumber)
     }
 
     func ConsumeRandomLengthString() -> String {
@@ -74,11 +95,6 @@ class FuzzedDataProvider {
     }
 
     func PickValueInList<T>(from list: T) -> T.Element where T: Collection {
-        return list[Int.random(in: 0..<list.count) as! T.Index]
+        return list[ConsumeIntegralInRange(from: 0, to: list.count - 1) as! T.Index]
     }
-
-//    func ConsumeBool() -> Bool {
-//        return 1
-//    }
-
 }
