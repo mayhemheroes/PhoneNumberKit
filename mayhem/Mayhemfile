@@ -1,0 +1,8 @@
+project: PhoneNumberKit
+target: fuzz-parse
+testsuite:
+    - file://mayhem/testsuite
+
+cmds:
+  - cmd: /release/PhoneNumberKitFuzzer
+    libfuzzer: true
